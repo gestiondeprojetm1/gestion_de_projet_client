@@ -17,6 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ app/
 COPY scripts/ scripts/
+COPY migrations/ migrations/
 
 # Utilisateur non root : limite les dégâts en cas de faille dans l'application
 RUN useradd --create-home --uid 1000 appuser

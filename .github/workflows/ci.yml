@@ -8,6 +8,7 @@ on:
     branches: [main]
   push:
     branches: [main]
+    tags: ["v*.*.*"]
 
 permissions:
   contents: read
@@ -66,3 +67,139 @@ jobs:
             --build-arg APP_VERSION=dev \
             --build-arg GIT_SHA="$SHORT_SHA" \
             -t "gestion-api:$SHORT_SHA" .
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: [tests, secrets, build]
+    outputs:
+      image_digest: ${{ steps.publish-image.outputs.digest }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extraire les métadonnées de l'image
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/gestion-api
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha,format=long
+
+      - name: Connexion à GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build et publication de l'image validée
+        id: publish-image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: |
+            APP_VERSION=${{ github.ref_name }}
+            GIT_SHA=${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Générer le manifeste de déploiement
+        shell: bash
+        run: |
+          mkdir -p release-artifact
+          cat > release-artifact/deployment.env <<EOF
+          IMAGE=ghcr.io/${{ github.repository }}/gestion-api@${{ steps.publish-image.outputs.digest }}
+          VERSION=${{ github.ref_name }}
+          GIT_SHA=${{ github.sha }}
+          HEALTH_PATH=/health
+          EOF
+
+      - name: Publier le manifeste pour D2.2
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-manifest-${{ github.ref_name }}
+          path: release-artifact/deployment.env
+
+  deploy-staging:
+    name: Déploiement staging et smoke test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: [publish]
+    environment:
+      name: staging
+    permissions:
+      contents: read
+      packages: read
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}/gestion-api@${{ needs.publish.outputs.image_digest }}
+      STAGING_TOKENS: ${{ secrets.STOCK_PRODUCER_TOKENS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Connexion à GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Créer le réseau staging isolé
+        run: docker network create ci-staging-network
+
+      - name: Démarrer PostgreSQL staging
+        run: |
+          docker run -d --name ci-staging-db \
+            --network ci-staging-network \
+            -e POSTGRES_USER=staging_user \
+            -e POSTGRES_PASSWORD=staging_password \
+            -e POSTGRES_DB=staging_db \
+            postgres:16
+          for attempt in {1..30}; do
+            if docker exec ci-staging-db pg_isready -U staging_user -d staging_db; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Déployer l'image validée en staging
+        run: |
+          docker run -d --name ci-staging-api \
+            --network ci-staging-network \
+            -p 18000:8000 \
+            -e DATABASE_URL="postgresql+psycopg://staging_user:staging_password@ci-staging-db:5432/staging_db" \
+            -e APP_VERSION="${{ github.ref_name }}" \
+            -e GIT_SHA="${{ github.sha }}" \
+            -e STOCK_PRODUCER_TOKENS="$STAGING_TOKENS" \
+            "$IMAGE"
+
+      - name: Attendre et vérifier /health
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:18000/health | tee health.json; then
+              test "$(jq -r .status health.json)" = "ok"
+              test "$(jq -r .database health.json)" = "ok"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs ci-staging-api
+          exit 1
+
+      - name: Appliquer et rejouer la migration en staging
+        run: docker exec ci-staging-api python scripts/migrate.py
+
+      - name: Smoke test après migration
+        run: |
+          curl --fail --silent --show-error http://127.0.0.1:18000/health | jq -e '.status == "ok" and .database == "ok"'
+
+      - name: Nettoyer le staging éphémère
+        if: always()
+        run: |
+          docker rm -f ci-staging-api ci-staging-db || true
+          docker network rm ci-staging-network || true
