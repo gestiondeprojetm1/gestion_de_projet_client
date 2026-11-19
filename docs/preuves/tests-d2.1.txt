@@ -1,0 +1,51 @@
+docker :  Container gestion_de_projet_client_equipe-db-1 Running
+Au caractère Ligne:1 : 1
++ docker compose run --rm --user root -v "${PWD}:/app" -w /app api sh - ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( Container gest...e-db-1 Running :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+ Container gestion_de_projet_client_equipe-db-1 Waiting
+ Container gestion_de_projet_client_equipe-db-1 Healthy
+ Container gestion_de_projet_client_equipe-api-run-80a2d6db3e47 Creating
+ Container gestion_de_projet_client_equipe-api-run-80a2d6db3e47 Created
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the
+system package manager, possibly rendering your system unusable. It is recommended to use a virtual
+environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what
+you are doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.0.1 -> 26.3
+[notice] To update, run: pip install --upgrade pip
+============================= test session starts ==============================
+platform linux -- Python 3.12.16, pytest-8.3.4, pluggy-1.7.0 -- /usr/local/bin/python
+rootdir: /app
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.16.0
+collecting ... collected 17 items
+
+tests/test_api.py::test_health_affiche_version_et_base PASSED            [  5%]
+tests/test_api.py::test_liste_des_produits PASSED                        [ 11%]
+tests/test_api.py::test_pagination_des_produits PASSED                   [ 17%]
+tests/test_api.py::test_limit_superieure_a_100_refusee PASSED            [ 23%]
+tests/test_api.py::test_creation_commande_valide PASSED                  [ 29%]
+tests/test_api.py::test_declaration_et_modification_du_stock PASSED      [ 35%]
+tests/test_api.py::test_commande_stock_insuffisant_et_stock_inchange PASSED [ 41%]
+tests/test_api.py::test_stock_produit_inexistant PASSED                  [ 47%]
+tests/test_api.py::test_stock_invalide PASSED                            [ 52%]
+tests/test_api.py::test_modification_stock_sans_authentification_refusee PASSED [ 58%]
+tests/test_api.py::test_producteur_ne_peut_pas_modifier_le_produit_d_un_autre PASSED [ 64%]
+tests/test_api.py::test_producteur_autorise_modifie_son_produit PASSED   [ 70%]
+tests/test_api.py::test_la_base_refuse_un_stock_negatif PASSED           [ 76%]
+tests/test_api.py::test_health_base_indisponible_retourne_503 PASSED     [ 82%]
+tests/test_api.py::test_commande_produit_inexistant PASSED               [ 88%]
+tests/test_api.py::test_commande_quantite_invalide PASSED                [ 94%]
+tests/test_concurrency_postgres.py::test_commandes_concurrentes_ne_vendent_pas_plus_que_le_stock PASSED [100%]
+
+=============================== warnings summary ===============================
+../usr/local/lib/python3.12/site-packages/starlette/testclient.py:40
+  /usr/local/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 17 passed, 1 warning in 1.09s =========================

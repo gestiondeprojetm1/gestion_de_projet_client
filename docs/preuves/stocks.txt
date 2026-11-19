@@ -1,0 +1,13 @@
+ id |           name            | stock
+----+---------------------------+-------
+  1 | Jus de pomme Bio n┬░1      |    25
+  2 | Jus de pomme Fermier n┬░2  |    11
+  3 | Lentilles Local n┬░3       |    91
+  4 | Vin rouge Local n┬░4       |     0
+  5 | Huile d'olive Premium n┬░5 |    97
+  6 | Oeufs Fermier n┬░6         |    44
+  7 | Saucisson Bio n┬░7         |    48
+  8 | Confiture Frais n┬░8       |    90
+  9 | Confiture Bio n┬░9         |    10
+ 10 | Yaourt Fermier n┬░10       |    46
+(10 rows)
