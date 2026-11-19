@@ -3,10 +3,15 @@ import os
 
 # Doit être défini AVANT d'importer l'application (aucun secret nécessaire en CI).
 os.environ.setdefault("DATABASE_URL", "sqlite://")
+os.environ.setdefault(
+    "STOCK_PRODUCER_TOKENS",
+    '{"test-rucher-token":"Rucher du Lac","test-ferme-token":"Ferme Martin"}',
+)
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.exc import IntegrityError  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
@@ -34,9 +39,9 @@ def client():
     Base.metadata.create_all(bind=engine)
     with TestingSession() as db:
         db.add_all([
-            Product(name="Miel Bio", price=8.50, producer="Rucher du Lac"),
-            Product(name="Cidre Fermier", price=4.20, producer="Ferme Martin"),
-            Product(name="Beurre Local", price=3.10, producer="Maison Dubois"),
+            Product(name="Miel Bio", price=8.50, producer="Rucher du Lac", stock=10),
+            Product(name="Cidre Fermier", price=4.20, producer="Ferme Martin", stock=10),
+            Product(name="Beurre Local", price=3.10, producer="Maison Dubois", stock=10),
         ])
         db.commit()
 
@@ -45,3 +50,37 @@ def client():
         yield test_client
     app.dependency_overrides.clear()
     Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture
+def stock_headers():
+    return {"Authorization": "Bearer test-rucher-token"}
+
+
+@pytest.fixture
+def db_session(client):
+    with TestingSession() as db:
+        yield db
+
+
+@pytest.fixture
+def broken_client():
+    class BrokenSession:
+        def execute(self, _query):
+            raise RuntimeError("PostgreSQL indisponible")
+
+        def rollback(self):
+            pass
+
+    def broken_db():
+        yield BrokenSession()
+
+    app.dependency_overrides[get_db] = broken_db
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def integrity_error():
+    return IntegrityError

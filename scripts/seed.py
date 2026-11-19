@@ -30,7 +30,7 @@ def generate_products(count: int) -> list[Product]:
         name = f"{rng.choice(ITEMS)} {rng.choice(ADJECTIVES)} n°{i}"
         producer = f"{rng.choice(PRODUCER_PREFIXES)} {rng.choice(PRODUCER_NAMES)}"
         price = Decimal(str(round(rng.uniform(0.99, 49.99), 2)))
-        products.append(Product(name=name, price=price, producer=producer))
+        products.append(Product(name=name, price=price, producer=producer, stock=rng.randint(0, 100)))
     return products
 
 

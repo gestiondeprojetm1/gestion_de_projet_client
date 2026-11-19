@@ -11,6 +11,11 @@ class ProductOut(BaseModel):
     name: str
     price: float
     producer: str
+    stock: int
+
+
+class StockUpdate(BaseModel):
+    stock: int = Field(ge=0, description="Stock entier non négatif")
 
 
 class OrderIn(BaseModel):

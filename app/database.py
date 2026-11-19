@@ -24,10 +24,12 @@ def get_db():
 def init_db() -> None:
     """Crée les tables au démarrage.
 
-    Partie 2 (gestion du stock, risque 5 du T1) : cette fonction sera remplacée
-    par des migrations Alembic (`alembic upgrade head`), testées en staging
-    avant la production. Les modèles sont déjà isolés dans app/models.py.
+    Les migrations versionnées sont également disponibles dans `migrations/` et
+    peuvent être appliquées avec `python scripts/migrate.py` avant un déploiement.
     """
     from app import models  # noqa: F401  (enregistre les tables dans Base.metadata)
 
     Base.metadata.create_all(bind=engine)
+    # Les bases existantes doivent être migrées explicitement avec
+    # `python scripts/migrate.py` avant le démarrage. Ainsi create_all() ne
+    # concurrence pas une migration de schéma en production.
