@@ -1,0 +1,10 @@
+# Secrets locaux : ne jamais versionner (risque 3 du T1)
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
