@@ -1,5 +1,5 @@
 
-## 2. Tableau des étapes du pipeline
+## Tableau des étapes du pipeline
 
 Nous avons défini les différentes étapes du pipeline CI/CD, depuis la création d'une branche jusqu'au déploiement en production. Pour chacune, nous précisons son déclencheur, sa durée estimée et son caractère bloquant.
 
@@ -28,3 +28,29 @@ Nous avons défini les différentes étapes du pipeline CI/CD, depuis la créati
 Les contrôles automatisés permettent de détecter les erreurs et les éventuels secrets exposés avant la fusion dans `main`. La première approbation humaine garantit qu'un autre développeur valide les modifications, avec une relecture par un développeur senior via CODEOWNERS lorsque l'auteur est un alternant.
 
 Après la fusion, l'image Docker est construite et publiée sur GHCR, puis déployée en staging afin de vérifier le fonctionnement de l'application. Une deuxième approbation humaine, réalisée dans l'environnement GitHub `production`, est nécessaire avant le déploiement en production. Enfin, la sauvegarde de la base de données et la vérification finale permettent de limiter les risques liés au déploiement.
+
+
+##  Procédure de retour arrière (rollback)
+
+En cas d'échec après un déploiement en production, le responsable du déploiement déclenche la procédure de rollback. L'objectif est de rétablir une version fonctionnelle du service en moins de 5 minutes.
+
+### Déclenchement
+
+Le rollback est déclenché lorsque :
+- La route `/health` ne répond plus correctement.
+- Les tests de vérification après déploiement échouent.
+- La version déployée présente une anomalie importante empêchant le fonctionnement normal de l'application.
+
+### Procédure
+
+1. Le responsable du déploiement confirme l'incident et décide du retour arrière.
+2. L'équipe identifie le dernier tag stable et le SHA de l'image Docker précédente.
+3. L'image précédente est redéployée sur le serveur de production.
+4. Le service est redémarré.
+5. L'équipe vérifie la disponibilité de `/health` et contrôle que la version attendue est bien active.
+
+**Durée cible :** moins de 5 minutes pour rétablir la version précédente de l'application.
+
+### Limites du rollback
+
+Le rollback de l'application ne permet pas nécessairement d'annuler les modifications déjà effectuées dans la base de données. Une migration irréversible ou une perte de données peut nécessiter une procédure spécifique de restauration à partir de la sauvegarde. Les données créées après le déploiement peuvent également ne pas être récupérées automatiquement.
