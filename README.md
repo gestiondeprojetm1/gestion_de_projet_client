@@ -1,8 +1,8 @@
 #Menbre du groupe 
-N'guessan Atti Landry
-Maha Sabbar
-Moughit aya 
-KEDREBEOGO Wendzoodo
+#N'guessan Atti Landry
+#Maha Sabbar
+#Moughit aya 
+#KEDREBEOGO Wendzoodo
 
 # gestion_de_projet_client
 
